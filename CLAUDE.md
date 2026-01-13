@@ -63,6 +63,43 @@ docker run --env-file .env tech-digest python tech_digest_agent.py --test
 ## Key Implementation Details
 
 - Model: `claude-sonnet-4-5-20250929`
-- Uses regex to parse `<markdown>` and `<html>` tags from Claude's response
+- Uses regex to parse `[MARKDOWN]` and `[WECHAT_HTML]` tags from Claude's response
 - Logging to both console and `tech_digest.log`
 - Schedule library handles recurring tasks in `--schedule` mode
+- Multi-dimensional AI Twitter search with 5 categories (breaking news, companies, models, tools, technologies)
+
+## Cloud Deployment
+
+**Server**: `root@104.156.250.197`
+**Path**: `/opt/tech-digest`
+**Schedule**: Daily at 08:00 (Beijing time)
+
+```bash
+# Quick deploy (after code changes)
+scp Dockerfile requirements.txt tech_digest_agent.py .env root@104.156.250.197:/opt/tech-digest/
+ssh root@104.156.250.197 "cd /opt/tech-digest && docker build -t tech-digest . && docker restart tech-digest"
+
+# View logs
+ssh root@104.156.250.197 "docker logs -f --tail 100 tech-digest"
+
+# Run once (test)
+ssh root@104.156.250.197 "docker exec tech-digest python tech_digest_agent.py --test"
+```
+
+Or use `./deploy.sh` script: `build`, `push`, `logs`, `status`, `restart`, `stop`, `run`
+
+## Skills (Claude Code)
+
+Project skills are in `.claude/skills/`:
+- `/deploy` - 云端部署命令
+- `/run` - 本地运行命令
+- `/keywords` - AI 关键词管理
+
+## AI Keywords Configuration
+
+Edit `AI_TWITTER_KEYWORDS` in `tech_digest_agent.py` (line ~54-86) to add/remove:
+- Companies: OpenAI, Anthropic, DeepMind, etc.
+- Models: GPT-5, Claude 4, Gemini, Llama 3, etc.
+- Dev Tools: Claude Code, Cursor, Copilot, etc.
+- Technologies: AI agent, LLM, RAG, etc.
+- Breaking News: "Anthropic launches", "OpenAI announces", etc.
