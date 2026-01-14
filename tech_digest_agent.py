@@ -298,15 +298,20 @@ class TechDigestAgent:
 </div>
 ```
 
-请严格按以下格式返回（注意使用方括号标签）：
+**【重要】请严格按以下格式返回，两部分缺一不可：**
 
 [MARKDOWN]
-（Markdown 内容）
+（完整的 Markdown 内容）
 [/MARKDOWN]
 
 [WECHAT_HTML]
-（HTML 内容，以 <div> 开始，不要包含 <!DOCTYPE>、<html>、<head>、<body> 等标签）
+（完整的 HTML 内容，以 <div> 开始，不要包含 <!DOCTYPE>、<html>、<head>、<body> 等标签）
 [/WECHAT_HTML]
+
+**注意：**
+1. 必须同时生成 MARKDOWN 和 WECHAT_HTML 两部分
+2. WECHAT_HTML 是发布到微信公众号的必需格式，绝对不能省略
+3. 确保 [WECHAT_HTML] 和 [/WECHAT_HTML] 标签完整闭合
 """
 
         response = self.client.messages.create(
@@ -327,24 +332,43 @@ class TechDigestAgent:
         # 解析 Markdown 和 HTML（使用方括号标签避免与 HTML 内容冲突）
         md_match = re.search(r'\[MARKDOWN\](.*?)\[/MARKDOWN\]', full_response, re.DOTALL)
         html_match = re.search(r'\[WECHAT_HTML\](.*?)\[/WECHAT_HTML\]', full_response, re.DOTALL)
-        
+
+        # 记录解析结果
+        if not md_match:
+            logger.warning("未能解析到 [MARKDOWN] 标签，将使用原始响应")
+        if not html_match:
+            logger.warning("未能解析到 [WECHAT_HTML] 标签，HTML 内容为空")
+            logger.debug(f"原始响应末尾 500 字符: {full_response[-500:]}")
+
         return {
             "markdown": md_match.group(1).strip() if md_match else full_response,
             "html": html_match.group(1).strip() if html_match else "",
             "raw": full_response
         }
     
-    def run(self) -> Dict[str, str]:
+    def run(self, max_retries: int = 3) -> Dict[str, str]:
         """执行完整的日报生成流程"""
         logger.info(f"=== 开始生成 {self.today} 技术日报 ===")
-        
-        # 并行获取数据（实际是串行，但结构清晰）
+
+        # 获取数据源
         hn_data = self.fetch_hn_data()
         ph_data = self.fetch_producthunt_data()
         twitter_data = self.fetch_ai_twitter_data()
-        
-        # 生成日报
-        digest = self.generate_digest(hn_data, ph_data, twitter_data)
+
+        # 生成日报，带重试逻辑确保 HTML 输出
+        digest = {}
+        for attempt in range(1, max_retries + 1):
+            digest = self.generate_digest(hn_data, ph_data, twitter_data)
+            if digest.get("html"):
+                logger.info(f"日报生成成功 (第 {attempt} 次尝试)")
+                break
+            if attempt < max_retries:
+                logger.warning(f"第 {attempt} 次生成未包含 HTML，重试中...")
+            else:
+                logger.warning(f"第 {attempt} 次生成未包含 HTML，已达最大重试次数")
+
+        if not digest.get("html"):
+            logger.error("所有尝试均未生成 HTML 内容，无法发布到公众号")
         
         # 保存文件
         output_dir = Path("output")
@@ -408,7 +432,7 @@ class WeChatPublisher:
         try:
             font_large = ImageFont.truetype("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc", 48)
             font_small = ImageFont.truetype("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc", 24)
-        except:
+        except OSError:
             font_large = ImageFont.load_default()
             font_small = ImageFont.load_default()
         
@@ -522,15 +546,18 @@ def daily_task():
         agent = TechDigestAgent()
         digest = agent.run()
         
-        # 2. 发布到微信
+        # 2. 发布到微信（只使用 HTML 格式）
         if os.getenv("WECHAT_APP_ID") and os.getenv("WECHAT_APP_SECRET"):
-            publisher = WeChatPublisher()
-            
-            # 优先使用 HTML，否则用 Markdown
-            content = digest.get("html") or digest.get("markdown", "")
-            if content:
+            html_content = digest.get("html", "")
+
+            if not html_content:
+                logger.error("HTML 内容为空，拒绝发布到公众号")
+                logger.error("请检查 Claude API 返回的内容是否包含 [WECHAT_HTML] 标签")
+            else:
+                publisher = WeChatPublisher()
+                logger.info("使用 HTML 格式发布到公众号")
                 today_short = datetime.now().strftime("%m.%d")
-                result = publisher.run(content, f"Tech Digest {today_short}")
+                result = publisher.run(html_content, f"Tech Digest {today_short}")
                 logger.info(f"发布结果: {result}")
         else:
             logger.warning("未配置微信公众号凭证，跳过发布")
