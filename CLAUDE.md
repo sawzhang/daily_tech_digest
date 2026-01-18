@@ -48,30 +48,24 @@ python tech_digest_agent.py --schedule --time 09:30
 ### 使用 deploy.sh 脚本
 
 ```bash
-./deploy.sh build    # 本地构建镜像
-./deploy.sh push     # 推送到服务器并部署
+./deploy.sh deploy   # 【推荐】快速部署：上传代码到服务器并构建
 ./deploy.sh logs     # 查看容器日志
 ./deploy.sh status   # 查看容器状态
+./deploy.sh run      # 在服务器上立即执行一次
 ./deploy.sh restart  # 重启容器
 ./deploy.sh stop     # 停止容器
-./deploy.sh run      # 在服务器上立即执行一次
+./deploy.sh build    # 本地构建镜像
+./deploy.sh push     # 推送本地镜像到服务器（较慢）
 ```
 
-### 快速部署命令
+### 快速部署（修复问题后）
 
 ```bash
-# 上传代码并重新部署
-scp Dockerfile requirements.txt tech_digest_agent.py .env root@104.156.250.197:/opt/tech-digest/
-ssh root@104.156.250.197 "cd /opt/tech-digest && docker build -t tech-digest . && docker stop tech-digest && docker rm tech-digest && docker run -d --name tech-digest --restart unless-stopped --env-file .env -v /opt/tech-digest/output:/app/output tech-digest"
+# 一条命令完成部署
+./deploy.sh deploy
 
-# 查看日志
-ssh root@104.156.250.197 "docker logs -f --tail 100 tech-digest"
-
-# 立即执行一次
-ssh root@104.156.250.197 "docker exec tech-digest python tech_digest_agent.py --test"
-
-# 查看生成的文件
-ssh root@104.156.250.197 "ls -la /opt/tech-digest/output/"
+# 查看日志确认
+./deploy.sh logs
 ```
 
 ## 项目结构

@@ -4,12 +4,14 @@
 # 用法: ./deploy.sh [command]
 #
 # 命令:
-#   build    - 构建 Docker 镜像
-#   push     - 推送到服务器并部署
+#   deploy   - 【推荐】快速部署：上传代码到服务器并构建
+#   build    - 本地构建 Docker 镜像
+#   push     - 推送本地镜像到服务器并部署
 #   logs     - 查看容器日志
 #   status   - 查看容器状态
 #   restart  - 重启容器
 #   stop     - 停止容器
+#   run      - 在服务器上立即执行一次
 #   test     - 本地测试运行
 
 set -e
@@ -128,6 +130,44 @@ run_once() {
     ssh $SERVER "docker exec $CONTAINER_NAME python tech_digest_agent.py --test"
 }
 
+# 快速部署（上传代码到服务器并重新构建）
+deploy() {
+    log_info "快速部署：上传代码并在服务器上构建..."
+
+    log_info "上传代码文件..."
+    scp Dockerfile requirements.txt tech_digest_agent.py $SERVER:$REMOTE_DIR/
+
+    # 检查是否有 .env 更新
+    if [ -f .env ]; then
+        log_info "上传 .env 文件..."
+        scp .env $SERVER:$REMOTE_DIR/
+    fi
+
+    log_info "在服务器上构建并部署..."
+    ssh $SERVER << 'ENDSSH'
+cd /opt/tech-digest
+
+echo "构建 Docker 镜像..."
+docker build -t tech-digest .
+
+echo "重启容器..."
+docker stop tech-digest 2>/dev/null || true
+docker rm tech-digest 2>/dev/null || true
+
+docker run -d \
+    --name tech-digest \
+    --restart unless-stopped \
+    --env-file .env \
+    -v /opt/tech-digest/output:/app/output \
+    tech-digest
+
+echo "部署完成！"
+docker ps | grep tech-digest
+ENDSSH
+
+    log_info "部署完成！"
+}
+
 # 显示帮助
 help() {
     echo "Daily Tech Digest 部署脚本"
@@ -135,9 +175,10 @@ help() {
     echo "用法: ./deploy.sh [command]"
     echo ""
     echo "命令:"
-    echo "  build    - 构建 Docker 镜像"
+    echo "  deploy   - 【推荐】快速部署：上传代码到服务器并构建"
+    echo "  build    - 本地构建 Docker 镜像"
     echo "  test     - 本地测试运行"
-    echo "  push     - 推送到服务器并部署"
+    echo "  push     - 推送本地镜像到服务器并部署"
     echo "  logs     - 查看容器日志"
     echo "  status   - 查看容器状态"
     echo "  restart  - 重启容器"
@@ -148,6 +189,7 @@ help() {
 
 # 主逻辑
 case "${1:-help}" in
+    deploy)  deploy ;;
     build)   build ;;
     test)    test_local ;;
     push)    push ;;

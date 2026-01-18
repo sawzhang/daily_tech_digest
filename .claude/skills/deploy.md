@@ -1,7 +1,7 @@
 # /deploy - Daily Tech Digest 部署技能
 
 ## 描述
-部署 Daily Tech Digest 到云端服务器，支持构建、推送、查看日志等操作。
+部署 Daily Tech Digest 到云端服务器。
 
 ## 服务器信息
 - **地址**: `root@104.156.250.197`
@@ -9,94 +9,66 @@
 - **容器名**: `tech-digest`
 - **定时执行**: 每天 08:00 (北京时间)
 
-## 快速命令
+## 快速部署（推荐）
 
-### 1. 查看状态
+修复代码问题后，一条命令完成部署：
+
 ```bash
-ssh root@104.156.250.197 "docker ps | grep tech-digest"
+./deploy.sh deploy
 ```
 
-### 2. 查看日志
+这会自动：
+1. 上传代码文件到服务器
+2. 在服务器上构建 Docker 镜像
+3. 重启容器
+
+## deploy.sh 命令一览
+
+| 命令 | 说明 |
+|------|------|
+| `./deploy.sh deploy` | **【推荐】快速部署：上传代码并在服务器构建** |
+| `./deploy.sh logs` | 查看容器日志 |
+| `./deploy.sh status` | 查看容器状态 |
+| `./deploy.sh run` | 在服务器上立即执行一次（测试模式） |
+| `./deploy.sh restart` | 重启容器 |
+| `./deploy.sh stop` | 停止容器 |
+| `./deploy.sh build` | 本地构建 Docker 镜像 |
+| `./deploy.sh push` | 推送本地镜像到服务器（镜像较大，较慢） |
+| `./deploy.sh test` | 本地测试运行 |
+
+## 常用操作
+
+### 查看日志
 ```bash
-ssh root@104.156.250.197 "docker logs -f --tail 100 tech-digest"
+./deploy.sh logs
 ```
 
-### 3. 立即执行一次（测试模式）
+### 立即执行一次
 ```bash
-ssh root@104.156.250.197 "docker exec tech-digest python tech_digest_agent.py --test"
+./deploy.sh run
 ```
 
-### 4. 重新部署（代码更新后）
-```bash
-# 上传新代码
-scp Dockerfile requirements.txt tech_digest_agent.py .env root@104.156.250.197:/opt/tech-digest/
-
-# SSH 到服务器重新构建和部署
-ssh root@104.156.250.197 << 'EOF'
-cd /opt/tech-digest
-docker build -t tech-digest .
-docker stop tech-digest && docker rm tech-digest
-docker run -d \
-    --name tech-digest \
-    --restart unless-stopped \
-    --env-file .env \
-    -v /opt/tech-digest/output:/app/output \
-    tech-digest
-docker logs tech-digest
-EOF
-```
-
-### 5. 重启容器
-```bash
-ssh root@104.156.250.197 "docker restart tech-digest"
-```
-
-### 6. 停止容器
-```bash
-ssh root@104.156.250.197 "docker stop tech-digest"
-```
-
-### 7. 查看生成的文件
+### 查看生成的文件
 ```bash
 ssh root@104.156.250.197 "ls -la /opt/tech-digest/output/"
 ```
 
-### 8. 下载生成的日报
+### 下载生成的日报
 ```bash
 scp root@104.156.250.197:/opt/tech-digest/output/tech_digest_$(date +%Y-%m-%d).md ./
-```
-
-## 使用 deploy.sh 脚本
-
-项目根目录有 `deploy.sh` 脚本，支持以下命令：
-
-```bash
-./deploy.sh build    # 本地构建 Docker 镜像
-./deploy.sh test     # 本地测试运行
-./deploy.sh push     # 推送到服务器并部署
-./deploy.sh logs     # 查看容器日志
-./deploy.sh status   # 查看容器状态
-./deploy.sh restart  # 重启容器
-./deploy.sh stop     # 停止容器
-./deploy.sh run      # 在服务器上立即执行一次
 ```
 
 ## 故障排查
 
 ### 容器无法启动
 ```bash
-# 查看详细错误
-ssh root@104.156.250.197 "docker logs tech-digest"
-
-# 检查 .env 文件
-ssh root@104.156.250.197 "cat /opt/tech-digest/.env"
+./deploy.sh logs
 ```
 
-### API 调用失败
-检查 ANTHROPIC_API_KEY 是否正确配置在 .env 文件中。
-
-### 微信发布失败
-检查 WECHAT_APP_ID 和 WECHAT_APP_SECRET 是否正确配置。
+### 检查 .env 配置
+```bash
+ssh root@104.156.250.197 "cat /opt/tech-digest/.env"
+```
 
 ## 环境变量
 

@@ -351,12 +351,15 @@ class TechDigestAgent:
 - 表格：margin-top: 10px; width: 100%; （表格紧跟标题，不要有大间距）
 - 禁止使用 min-height 或固定 height
 - 禁止在标题和表格之间添加空的 div 或 br 标签
+- **禁止生成空的列表项！** 每个 &lt;li&gt; 或 bullet point 必须有实际内容，不允许出现空白的 bullet
+- **【极其重要】列表标签必须紧凑排列！** `<ul>` 和 `<li>` 之间、`</li>` 和 `<li>` 之间不能有换行或空格！正确格式：`<ul><li>内容1</li><li>内容2</li></ul>`，错误格式会导致微信显示空的列表项
 
 **样式规范：**
 - 使用内联样式
+- **【重要】所有颜色必须使用十六进制格式**：禁止使用 white、black、red 等颜色名称！白色必须写 #ffffff，黑色必须写 #000000。微信公众号不能正确渲染颜色名称！
 - 卡片背景：浅色渐变 linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%) 或类似柔和色
 - 卡片圆角：border-radius: 12px;
-- **表格表头（重要！）**：必须有明显的深色背景 #667eea，白色粗体文字，确保表头清晰可见
+- **表格表头（极其重要！必须严格遵守！）**：背景色必须是深色 #667eea 或 #5a67d8，文字必须是白色 #ffffff。禁止使用浅绿色、浅灰色等任何浅色作为表头背景！这是硬性要求，不可修改
 - 表格数据行：交替背景色 #ffffff 和 #f8f9fa
 - 表格单元格：padding: 8px 10px; （紧凑型）
 - 字体大小：标题 16-18px，正文 14-15px，表格 13px
@@ -364,7 +367,7 @@ class TechDigestAgent:
 
 **特殊区块样式：**
 - **阅读时间提示（必须放在文章最开头！）**：统计全文字数，计算预计阅读时间（按300字/分钟），居中显示
-- 今日头条区块：使用醒目的渐变背景 linear-gradient(135deg, #667eea 0%, #764ba2 100%)，白色文字
+- 今日头条区块：使用醒目的渐变背景 linear-gradient(135deg, #667eea 0%, #764ba2 100%)，白色文字（必须用 #ffffff，禁止用 white）
 - 互动引导区块：使用橙色/红色系背景，加粗文字，居中对齐
 - 个人观点/碎碎念：使用引用样式，左边框 4px solid #667eea，浅灰背景
 - 关键词/标签：使用小圆角背景色块突出显示
@@ -376,10 +379,18 @@ class TechDigestAgent:
 </div>
 ```
 
+**今日头条区块样式示例（必须严格遵守！）：**
+```html
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; margin: 20px 0;">
+  <h2 style="color: #ffffff; font-size: 18px; margin: 0 0 15px 0;">📌 今日头条：标题内容</h2>
+  <p style="color: #ffffff; font-size: 14px; margin-bottom: 10px;">正文内容...</p>
+</div>
+```
+
 **互动引导样式示例：**
 ```html
 <div style="background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%); padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0;">
-  <p style="color: white; font-size: 16px; font-weight: bold; margin: 0;">👇 觉得有用？点个赞支持一下</p>
+  <p style="color: #ffffff; font-size: 16px; font-weight: bold; margin: 0;">👇 觉得有用？点个赞支持一下</p>
 </div>
 ```
 
@@ -390,23 +401,15 @@ class TechDigestAgent:
 </div>
 ```
 
-**表格样式示例（表头必须清晰可见）：**
+**表格样式示例（必须严格复制此样式，禁止修改颜色！微信要求每个th都要有背景色！）：**
 ```html
-<table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
-  <thead>
-    <tr style="background: #667eea;">
-      <th style="padding: 10px; color: white; font-weight: bold; text-align: left;">排名</th>
-      <th style="padding: 10px; color: white; font-weight: bold; text-align: left;">标题</th>
-      <th style="padding: 10px; color: white; font-weight: bold; text-align: left;">热度</th>
-      <th style="padding: 10px; color: white; font-weight: bold; text-align: left;">为什么值得看</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr style="background: #ffffff;"><td style="padding: 8px;">...</td>...</tr>
-    <tr style="background: #f8f9fa;"><td style="padding: 8px;">...</td>...</tr>
-  </tbody>
-</table>
+<table style="width: 100%; border-collapse: collapse; margin: 10px 0;"><thead><tr><th style="background: #667eea; padding: 10px; color: #ffffff; font-weight: bold; text-align: left;">排名</th><th style="background: #667eea; padding: 10px; color: #ffffff; font-weight: bold; text-align: left;">标题</th><th style="background: #667eea; padding: 10px; color: #ffffff; font-weight: bold; text-align: left;">热度</th><th style="background: #667eea; padding: 10px; color: #ffffff; font-weight: bold; text-align: left;">为什么值得看</th></tr></thead><tbody><tr style="background: #ffffff;"><td style="padding: 8px;">...</td><td>...</td><td>...</td><td>...</td></tr><tr style="background: #f8f9fa;"><td style="padding: 8px;">...</td><td>...</td><td>...</td><td>...</td></tr></tbody></table>
 ```
+
+**【极其重要】表格表头样式规则：**
+- 每个 `<th>` 必须单独设置 `background: #667eea;`（微信不支持在 tr 上设置背景色）
+- 每个 `<th>` 必须设置 `color: #ffffff;`
+- 表格标签之间不要有换行和空格
 
 **【重要】请严格按以下格式返回，两部分缺一不可：**
 
@@ -422,6 +425,9 @@ class TechDigestAgent:
 1. 必须同时生成 MARKDOWN 和 WECHAT_HTML 两部分
 2. WECHAT_HTML 是发布到微信公众号的必需格式，绝对不能省略
 3. 确保 [WECHAT_HTML] 和 [/WECHAT_HTML] 标签完整闭合
+4. **关键：表格每个 th 必须单独设置 background: #667eea 深色背景 + color: #ffffff 白色文字（微信不支持在 tr 上设置背景，必须在每个 th 上设置！）**
+5. **禁止生成空的列表项（空 bullet point），每个列表项必须有文字内容**
+6. **【极其重要】所有颜色必须用十六进制格式！禁止使用 white/black/red 等颜色名称，否则微信公众号会显示异常！白色用 #ffffff，黑色用 #000000**
 """
 
         response = self.client.messages.create(
@@ -450,11 +456,55 @@ class TechDigestAgent:
             logger.warning("未能解析到 [WECHAT_HTML] 标签，HTML 内容为空")
             logger.debug(f"原始响应末尾 500 字符: {full_response[-500:]}")
 
+        # 清理和修复 HTML 以适配微信公众号
+        html_content = html_match.group(1).strip() if html_match else ""
+        if html_content:
+            html_content = self._clean_html_for_wechat(html_content)
+
         return {
             "markdown": md_match.group(1).strip() if md_match else full_response,
-            "html": html_match.group(1).strip() if html_match else "",
+            "html": html_content,
             "raw": full_response
         }
+
+    def _clean_html_for_wechat(self, html: str) -> str:
+        """清理和修复 HTML 以适配微信公众号的渲染"""
+        # 1. 清理列表标签之间的空白（避免微信显示空列表项）
+        html = re.sub(r'<ul([^>]*)>\s+<li', r'<ul\1><li', html)
+        html = re.sub(r'</li>\s+<li', r'</li><li', html)
+        html = re.sub(r'</li>\s+</ul>', r'</li></ul>', html)
+        html = re.sub(r'<ol([^>]*)>\s+<li', r'<ol\1><li', html)
+        html = re.sub(r'</li>\s+</ol>', r'</li></ol>', html)
+
+        # 2. 修复表格表头：确保每个 th 都有背景色（微信不支持在 tr 上设置背景）
+        def fix_th_background(match):
+            th_tag = match.group(0)
+            # 如果 th 已经有 background 样式，跳过
+            if 'background' in th_tag.lower():
+                return th_tag
+            # 在 style 中添加 background
+            if 'style="' in th_tag:
+                return th_tag.replace('style="', 'style="background: #667eea; ')
+            else:
+                return th_tag.replace('<th', '<th style="background: #667eea;"')
+
+        # 使用负向前瞻 (?!ead) 来避免匹配 <thead>
+        html = re.sub(r'<th(?!ead)([^>]*)>', fix_th_background, html)
+
+        # 3. 清理表格标签之间的空白
+        html = re.sub(r'<table([^>]*)>\s+<thead', r'<table\1><thead', html)
+        html = re.sub(r'<thead>\s+<tr', r'<thead><tr', html)
+        html = re.sub(r'<tr([^>]*)>\s+<th', r'<tr\1><th', html)
+        html = re.sub(r'</th>\s+<th', r'</th><th', html)
+        html = re.sub(r'</th>\s+</tr>', r'</th></tr>', html)
+        html = re.sub(r'</tr>\s+</thead>', r'</tr></thead>', html)
+        html = re.sub(r'</thead>\s+<tbody>', r'</thead><tbody>', html)
+        html = re.sub(r'<tbody>\s+<tr', r'<tbody><tr', html)
+        html = re.sub(r'</tr>\s+<tr', r'</tr><tr', html)
+        html = re.sub(r'</tr>\s+</tbody>', r'</tr></tbody>', html)
+        html = re.sub(r'</tbody>\s+</table>', r'</tbody></table>', html)
+
+        return html
     
     def run(self, max_retries: int = 3) -> Dict[str, str]:
         """执行完整的日报生成流程"""
@@ -563,15 +613,15 @@ class WeChatPublisher:
 
             for tag in tags:
                 tag_width = len(tag) * 18 + 20
-                # 绘制圆角矩形背景
+                # 绘制圆角矩形背景（深色半透明效果）
                 draw.rounded_rectangle(
                     [start_x, tag_y, start_x + tag_width, tag_y + 30],
                     radius=15,
-                    fill=(255, 255, 255, 50)
+                    fill=(50, 50, 80)  # 深蓝紫色背景
                 )
-                # 绘制文字
+                # 绘制文字（白色）
                 draw.text((start_x + tag_width // 2, tag_y + 15), f"#{tag}",
-                         font=font_tag, fill='white', anchor='mm')
+                         font=font_tag, fill='#ffffff', anchor='mm')
                 start_x += tag_width + 10
 
         cover_path = "output/cover.jpg"
