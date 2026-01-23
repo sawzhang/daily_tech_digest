@@ -93,7 +93,8 @@ class TechDigestAgent:
         self.client = anthropic.Anthropic(
             api_key=os.getenv("ANTHROPIC_API_KEY")
         )
-        self.model = "claude-sonnet-4-5-20250929"  # 使用 Sonnet 4.5 平衡成本和质量
+        self.model = "claude-sonnet-4-5-20250929"  # 使用 Sonnet 4.5 生成内容
+        self.haiku_model = "claude-haiku-4-5-20251001"  # 使用 Haiku 4.5 进行数据收集（成本低 90%）
         self.today = datetime.now().strftime("%Y年%m月%d日")
         self.today_short = datetime.now().strftime("%Y-%m-%d")
         self.output_dir = Path("output")
@@ -132,12 +133,18 @@ class TechDigestAgent:
 
         return "\n\n".join(recent_topics) if recent_topics else ""
         
-    def search_web(self, query: str) -> str:
-        """使用 Claude 的 web_search 工具搜索网页"""
-        logger.info(f"搜索: {query}")
-        
+    def search_web(self, query: str, use_haiku: bool = True) -> str:
+        """使用 Claude 的 web_search 工具搜索网页
+
+        Args:
+            query: 搜索查询
+            use_haiku: 是否使用 Haiku 模型（成本更低），默认 True
+        """
+        model = self.haiku_model if use_haiku else self.model
+        logger.info(f"搜索 ({model}): {query}")
+
         response = self.client.messages.create(
-            model=self.model,
+            model=model,
             max_tokens=4096,
             tools=[{
                 "type": "web_search_20250305",
@@ -148,7 +155,7 @@ class TechDigestAgent:
                 "content": f"搜索以下内容并返回结果摘要：{query}"
             }]
         )
-        
+
         # 提取文本响应
         result = ""
         for block in response.content:
@@ -167,40 +174,30 @@ class TechDigestAgent:
         return self.search_web(f"Product Hunt top products {self.today_short} site:producthunt.com")
     
     def fetch_ai_twitter_data(self) -> str:
-        """获取 AI Twitter 动态 - 多维度搜索策略，只获取最近7天的内容"""
+        """获取 AI Twitter 动态 - 多维度搜索策略，只获取最近2天的内容（成本优化版）"""
         logger.info("获取 AI Twitter 数据...")
 
-        # 时间限制：只获取最近7天的内容
-        week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-        time_filter = f"after:{week_ago}"
+        # 时间限制：只获取最近2天的内容（更新鲜）
+        two_days_ago = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
+        time_filter = f"after:{two_days_ago}"
         site_filter = "site:x.com OR site:twitter.com"
 
-        # 多维度搜索查询
+        # 多维度搜索查询（从 5 维优化到 3 维，降低成本）
         search_dimensions = [
             # 维度1: 突发新闻/产品发布 (优先级最高，捕捉最新动态)
             {
                 "name": "AI突发新闻",
                 "keywords": AI_TWITTER_KEYWORDS["breaking_news"],
             },
-            # 维度2: AI公司动态
+            # 维度2: AI公司动态 + 模型产品（合并）
             {
-                "name": "AI公司动态",
-                "keywords": AI_TWITTER_KEYWORDS["companies"][:5],
+                "name": "AI公司与模型",
+                "keywords": AI_TWITTER_KEYWORDS["companies"][:5] + AI_TWITTER_KEYWORDS["models"][:3],
             },
-            # 维度3: AI模型/产品发布
-            {
-                "name": "AI模型产品",
-                "keywords": AI_TWITTER_KEYWORDS["models"][:5],
-            },
-            # 维度4: AI开发工具
+            # 维度3: AI开发工具（重点关注）
             {
                 "name": "AI开发工具",
                 "keywords": AI_TWITTER_KEYWORDS["dev_tools"][:6],  # 包含 Claude Code 和 Cowork
-            },
-            # 维度5: AI技术趋势
-            {
-                "name": "AI技术趋势",
-                "keywords": AI_TWITTER_KEYWORDS["technologies"][:5],
             },
         ]
 
@@ -219,8 +216,8 @@ class TechDigestAgent:
     def fetch_reddit_ml_data(self) -> str:
         """获取 Reddit r/MachineLearning 热门帖子"""
         logger.info("获取 Reddit ML 数据...")
-        week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-        return self.search_web(f"site:reddit.com/r/MachineLearning top posts after:{week_ago}")
+        two_days_ago = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
+        return self.search_web(f"site:reddit.com/r/MachineLearning top posts after:{two_days_ago}")
 
     def fetch_github_trending(self) -> str:
         """获取 GitHub Trending 项目"""
@@ -258,11 +255,12 @@ class TechDigestAgent:
 
 请根据以下数据源，用你的风格写一份技术日报。
 
-## 重要：内容新鲜度要求
+## 🚨 极其重要：内容新鲜度要求（必须严格执行）
 - **今天日期是 {self.today}**
-- **只使用最近 7 天内的新闻和信息**
-- **严格过滤掉超过一周的旧新闻**（如去年的产品发布、旧模型发布等）
-- 如果数据源中包含旧信息（如 DeepSeek R1 发布于2025年1月、GPT-4 发布于2023年等），直接忽略这些内容
+- **只使用最近 24-48 小时内的新闻和信息**
+- **严格过滤掉超过 2 天的旧新闻**（任何超过 48 小时的内容都视为过时）
+- 如果数据源中包含旧信息（如去年的产品发布、上周的新闻等），直接忽略这些内容
+- **优先级：今天 > 昨天 > 前天**，越新鲜的内容越重要
 - 宁可内容少一些，也不要使用过时的信息误导读者
 {dedup_instruction}
 ## 数据源
@@ -314,10 +312,12 @@ class TechDigestAgent:
    | 产品 | 一句话介绍 | 亮点 | 踩坑提醒 |
    - 对特别有意思的产品，补充"这个产品解决了什么痛点"的分析
 
-6. **GitHub Trending 本周热门**（3-5个开源项目）
+6. **GitHub Trending 本周热门**（**必须包含 3-5 个开源项目，不能少于 3 个**）
    | 项目 | 语言 | Star数 | 一句话点评 |
+   - **强制要求：必须列出至少 3 个项目，最多 5 个**
    - 优先选择 AI/ML 相关的项目
    - 简要说明项目解决什么问题、适合谁用
+   - 如果数据源中没有足够项目，可以补充"值得关注的经典项目"
 
 7. **AI 圈内幕**（这部分要写详细，400-500字）
    - 大厂动态：谁发布了什么，意味着什么
@@ -411,23 +411,37 @@ class TechDigestAgent:
 - 每个 `<th>` 必须设置 `color: #ffffff;`
 - 表格标签之间不要有换行和空格
 
-**【重要】请严格按以下格式返回，两部分缺一不可：**
+**🚨【极其重要】输出格式要求（违反此要求将导致发布失败）：**
 
+你必须生成两个完整的版本，缺一不可：
+
+**第一步：生成 Markdown 版本**
 [MARKDOWN]
-（完整的 Markdown 内容）
+（完整的 Markdown 内容，1500-2500字）
 [/MARKDOWN]
 
+**第二步：生成 HTML 版本（绝对不能省略！）**
 [WECHAT_HTML]
 （完整的 HTML 内容，以 <div> 开始，不要包含 <!DOCTYPE>、<html>、<head>、<body> 等标签）
 [/WECHAT_HTML]
 
-**注意：**
-1. 必须同时生成 MARKDOWN 和 WECHAT_HTML 两部分
-2. WECHAT_HTML 是发布到微信公众号的必需格式，绝对不能省略
-3. 确保 [WECHAT_HTML] 和 [/WECHAT_HTML] 标签完整闭合
-4. **关键：表格每个 th 必须单独设置 background: #667eea 深色背景 + color: #ffffff 白色文字（微信不支持在 tr 上设置背景，必须在每个 th 上设置！）**
-5. **禁止生成空的列表项（空 bullet point），每个列表项必须有文字内容**
-6. **【极其重要】所有颜色必须用十六进制格式！禁止使用 white/black/red 等颜色名称，否则微信公众号会显示异常！白色用 #ffffff，黑色用 #000000**
+**🔴 强制检查清单（完成前必须自查）：**
+- [ ] 已生成完整的 Markdown 内容（1500-2500字）
+- [ ] 已生成完整的 HTML 内容（与 Markdown 内容一致）
+- [ ] Markdown 已用 [MARKDOWN]...[/MARKDOWN] 包裹
+- [ ] HTML 已用 [WECHAT_HTML]...[/WECHAT_HTML] 包裹
+- [ ] HTML 中所有颜色使用十六进制格式（#ffffff 而非 white）
+- [ ] 表格表头每个 th 设置了 background: #667eea; color: #ffffff;
+- [ ] 列表标签紧凑排列无空格（<ul><li>内容</li></ul>）
+- [ ] GitHub Trending 包含至少 3 个项目
+
+**⚠️ 常见错误（必须避免）：**
+1. ❌ 只生成 Markdown，忘记生成 HTML → 这会导致无法发布到公众号
+2. ❌ HTML 使用颜色名称（white/black）→ 微信无法正确渲染
+3. ❌ 列表标签之间有空格换行 → 微信会显示空的 bullet point
+4. ❌ GitHub Trending 项目少于 3 个 → 内容不充实
+
+**现在开始生成，请确保两部分都完整输出！**
 """
 
         response = self.client.messages.create(
