@@ -304,16 +304,29 @@ class TechDigestAgent:
    - 用 🔥 标记强烈看好，⚠️ 标记需要观望，💀 标记不看好
    - 每个都要有"这意味着什么"的分析
 
-4. **HN 热榜精选**（8-10个项目，表格+点评）
-   | 排名 | 标题 | 热度 | 为什么值得看 |
-   - 挑2-3个特别有意思的，在表格后额外写几句深度点评
+4. **HN 热榜精选**（8-10个项目）
+   - **Markdown 格式**：使用简化表格（3列）或编号列表
+     ```
+     | 排名 | 标题 (热度) | 为什么值得看 |
+     或者
+     1. **标题** (热度) - 为什么值得看
+     ```
+   - 挑2-3个特别有意思的，在表格/列表后额外写几句深度点评
 
 5. **Product Hunt 今日发现**（4-5个产品）
-   | 产品 | 一句话介绍 | 亮点 | 踩坑提醒 |
+   - **Markdown 格式**：使用简单列表
+     ```
+     **产品名** - 一句话介绍
+     亮点：xxx | 提醒：xxx
+     ```
    - 对特别有意思的产品，补充"这个产品解决了什么痛点"的分析
 
 6. **GitHub Trending 本周热门**（**必须包含 3-5 个开源项目，不能少于 3 个**）
-   | 项目 | 语言 | Star数 | 一句话点评 |
+   - **Markdown 格式**：使用简单列表，每个项目一行
+     ```
+     1. **项目名** (语言 · ⭐Star数) - 一句话描述
+     2. **项目名** (语言 · ⭐Star数) - 一句话描述
+     ```
    - **强制要求：必须列出至少 3 个项目，最多 5 个**
    - 优先选择 AI/ML 相关的项目
    - 简要说明项目解决什么问题、适合谁用
@@ -372,6 +385,13 @@ class TechDigestAgent:
 - 个人观点/碎碎念：使用引用样式，左边框 4px solid #667eea，浅灰背景
 - 关键词/标签：使用小圆角背景色块突出显示
 
+**📱 移动端优化布局规范（极其重要！）：**
+- **GitHub Trending / Product Hunt 使用卡片式布局，禁止使用表格！**
+- **HN 热榜可以使用简化表格（最多3列）或卡片布局**
+- 卡片内容结构：标题（加粗）→ 标签/元数据（小字灰色）→ 描述
+- 每个项目/产品使用独立的卡片 div，垂直排列
+- 卡片之间间距 margin-bottom: 12px
+
 **阅读时间提示样式（放在HTML最开头）：**
 ```html
 <div style="text-align: center; color: #888; font-size: 13px; padding: 10px 0; margin-bottom: 15px; border-bottom: 1px dashed #e0e0e0;">
@@ -401,15 +421,43 @@ class TechDigestAgent:
 </div>
 ```
 
-**表格样式示例（必须严格复制此样式，禁止修改颜色！微信要求每个th都要有背景色！）：**
+**📱 GitHub Trending 卡片式布局（强制使用！禁止用表格）：**
 ```html
-<table style="width: 100%; border-collapse: collapse; margin: 10px 0;"><thead><tr><th style="background: #667eea; padding: 10px; color: #ffffff; font-weight: bold; text-align: left;">排名</th><th style="background: #667eea; padding: 10px; color: #ffffff; font-weight: bold; text-align: left;">标题</th><th style="background: #667eea; padding: 10px; color: #ffffff; font-weight: bold; text-align: left;">热度</th><th style="background: #667eea; padding: 10px; color: #ffffff; font-weight: bold; text-align: left;">为什么值得看</th></tr></thead><tbody><tr style="background: #ffffff;"><td style="padding: 8px;">...</td><td>...</td><td>...</td><td>...</td></tr><tr style="background: #f8f9fa;"><td style="padding: 8px;">...</td><td>...</td><td>...</td><td>...</td></tr></tbody></table>
+<div style="background: linear-gradient(135deg, #f5f7fa 0%, #e3e8f0 100%); padding: 15px; border-radius: 12px; margin-bottom: 12px; border-left: 4px solid #667eea;">
+  <div style="margin-bottom: 8px;">
+    <strong style="color: #333333; font-size: 15px;">DeepSeek R1</strong>
+    <span style="background: #667eea; color: #ffffff; padding: 3px 8px; border-radius: 10px; font-size: 12px; margin-left: 8px;">⭐ 15K+</span>
+  </div>
+  <div style="color: #888888; font-size: 12px; margin-bottom: 8px;">🐍 Python</div>
+  <p style="margin: 0; color: #555555; font-size: 14px; line-height: 1.6;">开源推理优化 LLM，性能可与 OpenAI o1 媲美</p>
+</div>
 ```
 
-**【极其重要】表格表头样式规则：**
-- 每个 `<th>` 必须单独设置 `background: #667eea;`（微信不支持在 tr 上设置背景色）
-- 每个 `<th>` 必须设置 `color: #ffffff;`
-- 表格标签之间不要有换行和空格
+**📱 Product Hunt 卡片式布局（强制使用！禁止用表格）：**
+```html
+<div style="background: #ffffff; border: 1px solid #e0e0e0; padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+  <h4 style="margin: 0 0 8px 0; color: #333333; font-size: 15px; font-weight: bold;">Sled</h4>
+  <p style="margin: 0 0 8px 0; color: #666666; font-size: 13px;">手机上通过语音运行编码代理</p>
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <span style="color: #10b981; font-size: 12px;">✨ 亮点：移动端AI编程新尝试</span>
+    <span style="color: #ef4444; font-size: 12px;">⚠️ 屏幕太小</span>
+  </div>
+</div>
+```
+
+**📊 HN 热榜简化表格（最多3列，或使用卡片式）：**
+```html
+<table style="width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px;">
+<thead><tr><th style="background: #667eea; padding: 10px; color: #ffffff; text-align: left; width: 10%;">排名</th><th style="background: #667eea; padding: 10px; color: #ffffff; text-align: left; width: 55%;">标题</th><th style="background: #667eea; padding: 10px; color: #ffffff; text-align: left; width: 35%;">为什么值得看</th></tr></thead>
+<tbody><tr style="background: #ffffff;"><td style="padding: 10px; font-weight: bold; color: #667eea;">1</td><td style="padding: 10px;"><strong>Level S4 solar radiation</strong><br><span style="color: #888888; font-size: 12px;">541👍</span></td><td style="padding: 10px; color: #555555;">太阳辐射影响卫星GPS</td></tr></tbody>
+</table>
+```
+
+**【极其重要】布局选择规则：**
+- GitHub Trending：**必须使用卡片式**，禁止用表格
+- Product Hunt：**必须使用卡片式**，禁止用表格
+- HN 热榜：可以使用简化表格（3列）或卡片式
+- 表格只用于 HN 热榜，且最多 3 列！
 
 **🚨【极其重要】输出格式要求（违反此要求将导致发布失败）：**
 
