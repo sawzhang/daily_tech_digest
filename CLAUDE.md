@@ -82,7 +82,9 @@ daily_tech_digest/
 └── .claude/skills/       # Claude Code Skills
     ├── deploy.md         # /deploy 部署技能
     ├── run.md            # /run 运行技能
-    └── keywords.md       # /keywords 关键词管理
+    ├── keywords.md       # /keywords 关键词管理
+    ├── wechat-publish.md # /wechat-publish 微信发文
+    └── wechat_publish.py # 微信发布脚本
 ```
 
 ## 核心配置
@@ -140,3 +142,43 @@ ssh root@104.156.250.197 "cd /opt/tech-digest && docker build -t tech-digest ."
 
 ### 内容风格调整
 编辑 `tech_digest_agent.py` 中 `generate_digest` 方法的 prompt（约第186-260行）。
+
+## 微信公众号图文发布
+
+### 使用 /wechat-publish 技能
+
+```bash
+# 发布指定目录的文章
+/wechat-publish /path/to/article-folder
+```
+
+### 文章目录结构要求
+
+```
+article-folder/
+├── *.html           # 文章内容（必需）
+├── cover.png/jpg    # 封面图片（必需）
+└── *.png/jpg        # 正文图片（可选，自动上传并替换路径）
+```
+
+### 执行流程
+
+1. 读取 HTML 文件，提取 `<title>` 和 `<body>` 内容
+2. 上传正文图片到微信素材库，获取 URL 并替换本地路径
+3. 上传封面图片，获取 media_id
+4. 优化 HTML（颜色转十六进制、清理空白、添加图片样式）
+5. 创建草稿 → 尝试发布（无权限则提示手动发布）
+
+### 微信排版规范
+
+- **颜色**: 必须使用十六进制格式（#ffffff），不能用 white/black
+- **列表**: 标签之间不能有空白字符
+- **图片**: 宽度 100%，圆角 8px，居中显示
+- **字体**: 正文 15px，行高 2.0，字间距 1px
+
+### 直接运行脚本
+
+```bash
+source venv/bin/activate
+python .claude/skills/wechat_publish.py "/path/to/article-folder"
+```
