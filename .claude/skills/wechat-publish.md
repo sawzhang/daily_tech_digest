@@ -24,6 +24,14 @@ article-folder/
 └── *.png/jpg        # 正文图片（可选，自动上传替换路径）
 ```
 
+## 文章制作完整流程
+
+1. **撰写 HTML 文章**：按微信排版规范编写，图片用本地文件名引用（如 `img-arch.jpg`）
+2. **准备封面图片**：cover.png/jpg，建议 900x383 比例
+3. **生成正文插图**：使用 `/napkin-images` 通过 Napkin.ai 生成专业可视化图表（详见 napkin-images.md）
+4. **所有文件放入同一目录**
+5. **执行 `/wechat-publish <目录路径>` 发布**
+
 ## 执行指令
 
 ```bash

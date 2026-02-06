@@ -84,6 +84,7 @@ daily_tech_digest/
     ├── run.md            # /run 运行技能
     ├── keywords.md       # /keywords 关键词管理
     ├── wechat-publish.md # /wechat-publish 微信发文
+    ├── napkin-images.md  # /napkin-images Napkin.ai 插图生成
     └── wechat_publish.py # 微信发布脚本
 ```
 
@@ -161,7 +162,30 @@ article-folder/
 └── *.png/jpg        # 正文图片（可选，自动上传并替换路径）
 ```
 
-### 执行流程
+### 文章制作完整流程
+
+1. **撰写 HTML 文章**：按微信排版规范编写，图片用本地文件名引用
+2. **准备封面图片**：cover.png/jpg，建议 900x383 比例
+3. **生成正文插图**：使用 `/napkin-images` 通过 Napkin.ai 生成专业可视化图表
+4. **所有文件放入同一目录**
+5. **执行 `/wechat-publish <目录路径>` 发布**
+
+### 使用 Napkin.ai 生成插图
+
+通过浏览器自动化操作 Napkin.ai（https://app.napkin.ai），输入结构化文本自动生成可视化图表：
+
+```bash
+# 使用 /napkin-images 技能
+/napkin-images "Layer 1: BDD Scenarios\nLayer 2: SDD Skills\nLayer 3: AI Agent Team"
+```
+
+**操作流程**：New Napkin → 输入标题和结构化内容 → Cmd+A 全选 → Generate Visual → 导出 PNG (2x) → 复制到文章目录
+
+**内容类型**：流程图、时间线、数据仪表盘、架构层次图等（根据文本结构自动识别）
+
+**前置条件**：已安装 Claude in Chrome 扩展，已登录 Napkin.ai 账号
+
+### 发布执行流程
 
 1. 读取 HTML 文件，提取 `<title>` 和 `<body>` 内容
 2. 上传正文图片到微信素材库，获取 URL 并替换本地路径
