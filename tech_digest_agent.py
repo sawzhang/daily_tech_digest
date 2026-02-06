@@ -226,8 +226,8 @@ class TechDigestAgent:
 
     def generate_digest(self, hn_data: str, ph_data: str, twitter_data: str,
                         reddit_data: str = "", github_data: str = "") -> Dict[str, str]:
-        """使用 Claude 生成技术日报"""
-        logger.info("生成技术日报...")
+        """使用 Claude 生成技术日报（分两步：先 Markdown，后 HTML）"""
+        logger.info("生成技术日报 Markdown...")
 
         # 加载历史话题用于去重
         recent_topics = self.load_recent_topics(days=7)
@@ -245,7 +245,8 @@ class TechDigestAgent:
 
 """
 
-        prompt = f"""你是一位在硅谷工作多年的华人技术老兵，同时运营一个小众但有深度的技术公众号「Tech老兵日记」。你的风格是：
+        # 第一步：生成 Markdown
+        markdown_prompt = f"""你是一位在硅谷工作多年的华人技术老兵，同时运营一个小众但有深度的技术公众号「Tech老兵日记」。你的风格是：
 - 说话直接，偶尔毒舌，但观点犀利
 - 喜欢用类比和比喻解释复杂概念
 - 会加入自己的判断和预测，敢于表态（比如"这个我不看好"、"这个值得关注"）
@@ -253,7 +254,7 @@ class TechDigestAgent:
 - 语气像跟朋友聊天，不是写报告
 - 会分享一些"圈内人才知道"的洞察
 
-请根据以下数据源，用你的风格写一份技术日报。
+请根据以下数据源，用你的风格写一份 Markdown 格式的技术日报。
 
 ## 🚨 极其重要：内容新鲜度要求（必须严格执行）
 - **今天日期是 {self.today}**
@@ -289,7 +290,7 @@ class TechDigestAgent:
 - **设置互动钩子**：在文中和文末引导读者点赞、评论
 - **引导关注**：在合适位置自然地提及关注公众号的好处
 
-### Part 1: Markdown 版本
+### Markdown 结构要求
 按照以下结构生成，注意保持个人风格和充实内容：
 
 1. **开篇引言**（2-3句引人入胜的话，制造悬念或抛出观点，让读者想继续看下去）
@@ -355,178 +356,131 @@ class TechDigestAgent:
     - 预告下一期可能会聊的话题
     - 引导关注："关注公众号，第一时间获取更新"
 
-### Part 2: HTML 版本
-生成适配微信公众号的富文本 HTML，严格遵循以下样式规范：
-
-**布局规范（重要！）：**
-- 卡片容器：padding: 15px; margin-bottom: 15px; （不要用过大的内边距）
-- 标题和内容之间：margin-bottom: 10px; （标题下方紧跟内容，不要留大空白）
-- 表格：margin-top: 10px; width: 100%; （表格紧跟标题，不要有大间距）
-- 禁止使用 min-height 或固定 height
-- 禁止在标题和表格之间添加空的 div 或 br 标签
-- **禁止生成空的列表项！** 每个 &lt;li&gt; 或 bullet point 必须有实际内容，不允许出现空白的 bullet
-- **【极其重要】列表标签必须紧凑排列！** `<ul>` 和 `<li>` 之间、`</li>` 和 `<li>` 之间不能有换行或空格！正确格式：`<ul><li>内容1</li><li>内容2</li></ul>`，错误格式会导致微信显示空的列表项
-
-**样式规范：**
-- 使用内联样式
-- **【重要】所有颜色必须使用十六进制格式**：禁止使用 white、black、red 等颜色名称！白色必须写 #ffffff，黑色必须写 #000000。微信公众号不能正确渲染颜色名称！
-- 卡片背景：浅色渐变 linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%) 或类似柔和色
-- 卡片圆角：border-radius: 12px;
-- **表格表头（极其重要！必须严格遵守！）**：背景色必须是深色 #667eea 或 #5a67d8，文字必须是白色 #ffffff。禁止使用浅绿色、浅灰色等任何浅色作为表头背景！这是硬性要求，不可修改
-- 表格数据行：交替背景色 #ffffff 和 #f8f9fa
-- 表格单元格：padding: 8px 10px; （紧凑型）
-- 字体大小：标题 16-18px，正文 14-15px，表格 13px
-- 行间距：line-height: 1.8;（提升阅读体验）
-
-**特殊区块样式：**
-- **阅读时间提示（必须放在文章最开头！）**：统计全文字数，计算预计阅读时间（按300字/分钟），居中显示
-- 今日头条区块：使用醒目的渐变背景 linear-gradient(135deg, #667eea 0%, #764ba2 100%)，白色文字（必须用 #ffffff，禁止用 white）
-- 互动引导区块：使用橙色/红色系背景，加粗文字，居中对齐
-- 个人观点/碎碎念：使用引用样式，左边框 4px solid #667eea，浅灰背景
-- 关键词/标签：使用小圆角背景色块突出显示
-
-**📱 移动端优化布局规范（极其重要！）：**
-- **GitHub Trending / Product Hunt 使用卡片式布局，禁止使用表格！**
-- **HN 热榜可以使用简化表格（最多3列）或卡片布局**
-- 卡片内容结构：标题（加粗）→ 标签/元数据（小字灰色）→ 描述
-- 每个项目/产品使用独立的卡片 div，垂直排列
-- 卡片之间间距 margin-bottom: 12px
-
-**阅读时间提示样式（放在HTML最开头）：**
-```html
-<div style="text-align: center; color: #888; font-size: 13px; padding: 10px 0; margin-bottom: 15px; border-bottom: 1px dashed #e0e0e0;">
-  本文共约XXXX字 | 预计阅读时间X分钟
-</div>
-```
-
-**今日头条区块样式示例（必须严格遵守！）：**
-```html
-<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; margin: 20px 0;">
-  <h2 style="color: #ffffff; font-size: 18px; margin: 0 0 15px 0;">📌 今日头条：标题内容</h2>
-  <p style="color: #ffffff; font-size: 14px; margin-bottom: 10px;">正文内容...</p>
-</div>
-```
-
-**互动引导样式示例：**
-```html
-<div style="background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%); padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0;">
-  <p style="color: #ffffff; font-size: 16px; font-weight: bold; margin: 0;">👇 觉得有用？点个赞支持一下</p>
-</div>
-```
-
-**引用/个人观点样式：**
-```html
-<div style="border-left: 4px solid #667eea; background: #f8f9fa; padding: 15px; margin: 15px 0;">
-  <p style="margin: 0; color: #555; font-style: italic;">个人观点内容...</p>
-</div>
-```
-
-**📱 GitHub Trending 卡片式布局（强制使用！禁止用表格）：**
-```html
-<div style="background: linear-gradient(135deg, #f5f7fa 0%, #e3e8f0 100%); padding: 15px; border-radius: 12px; margin-bottom: 12px; border-left: 4px solid #667eea;">
-  <div style="margin-bottom: 8px;">
-    <strong style="color: #333333; font-size: 15px;">DeepSeek R1</strong>
-    <span style="background: #667eea; color: #ffffff; padding: 3px 8px; border-radius: 10px; font-size: 12px; margin-left: 8px;">⭐ 15K+</span>
-  </div>
-  <div style="color: #888888; font-size: 12px; margin-bottom: 8px;">🐍 Python</div>
-  <p style="margin: 0; color: #555555; font-size: 14px; line-height: 1.6;">开源推理优化 LLM，性能可与 OpenAI o1 媲美</p>
-</div>
-```
-
-**📱 Product Hunt 卡片式布局（强制使用！禁止用表格）：**
-```html
-<div style="background: #ffffff; border: 1px solid #e0e0e0; padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-  <h4 style="margin: 0 0 8px 0; color: #333333; font-size: 15px; font-weight: bold;">Sled</h4>
-  <p style="margin: 0 0 8px 0; color: #666666; font-size: 13px;">手机上通过语音运行编码代理</p>
-  <div style="display: flex; justify-content: space-between; align-items: center;">
-    <span style="color: #10b981; font-size: 12px;">✨ 亮点：移动端AI编程新尝试</span>
-    <span style="color: #ef4444; font-size: 12px;">⚠️ 屏幕太小</span>
-  </div>
-</div>
-```
-
-**📊 HN 热榜简化表格（最多3列，或使用卡片式）：**
-```html
-<table style="width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px;">
-<thead><tr><th style="background: #667eea; padding: 10px; color: #ffffff; text-align: left; width: 10%;">排名</th><th style="background: #667eea; padding: 10px; color: #ffffff; text-align: left; width: 55%;">标题</th><th style="background: #667eea; padding: 10px; color: #ffffff; text-align: left; width: 35%;">为什么值得看</th></tr></thead>
-<tbody><tr style="background: #ffffff;"><td style="padding: 10px; font-weight: bold; color: #667eea;">1</td><td style="padding: 10px;"><strong>Level S4 solar radiation</strong><br><span style="color: #888888; font-size: 12px;">541👍</span></td><td style="padding: 10px; color: #555555;">太阳辐射影响卫星GPS</td></tr></tbody>
-</table>
-```
-
-**【极其重要】布局选择规则：**
-- GitHub Trending：**必须使用卡片式**，禁止用表格
-- Product Hunt：**必须使用卡片式**，禁止用表格
-- HN 热榜：可以使用简化表格（3列）或卡片式
-- 表格只用于 HN 热榜，且最多 3 列！
-
-**🚨【极其重要】输出格式要求（违反此要求将导致发布失败）：**
-
-你必须生成两个完整的版本，缺一不可：
-
-**第一步：生成 Markdown 版本**
-[MARKDOWN]
-（完整的 Markdown 内容，1500-2500字）
-[/MARKDOWN]
-
-**第二步：生成 HTML 版本（绝对不能省略！）**
-[WECHAT_HTML]
-（完整的 HTML 内容，以 <div> 开始，不要包含 <!DOCTYPE>、<html>、<head>、<body> 等标签）
-[/WECHAT_HTML]
-
-**🔴 强制检查清单（完成前必须自查）：**
-- [ ] 已生成完整的 Markdown 内容（1500-2500字）
-- [ ] 已生成完整的 HTML 内容（与 Markdown 内容一致）
-- [ ] Markdown 已用 [MARKDOWN]...[/MARKDOWN] 包裹
-- [ ] HTML 已用 [WECHAT_HTML]...[/WECHAT_HTML] 包裹
-- [ ] HTML 中所有颜色使用十六进制格式（#ffffff 而非 white）
-- [ ] 表格表头每个 th 设置了 background: #667eea; color: #ffffff;
-- [ ] 列表标签紧凑排列无空格（<ul><li>内容</li></ul>）
-- [ ] GitHub Trending 包含至少 3 个项目
-
-**⚠️ 常见错误（必须避免）：**
-1. ❌ 只生成 Markdown，忘记生成 HTML → 这会导致无法发布到公众号
-2. ❌ HTML 使用颜色名称（white/black）→ 微信无法正确渲染
-3. ❌ 列表标签之间有空格换行 → 微信会显示空的 bullet point
-4. ❌ GitHub Trending 项目少于 3 个 → 内容不充实
-
-**现在开始生成，请确保两部分都完整输出！**
+直接输出完整的 Markdown 内容，不要添加任何标签或前缀。
 """
 
+        # 第一步：生成 Markdown
         response = self.client.messages.create(
             model=self.model,
             max_tokens=16384,
             messages=[{
                 "role": "user",
-                "content": prompt
+                "content": markdown_prompt
             }]
         )
-        
-        # 提取响应文本
-        full_response = ""
+
+        # 提取 Markdown 文本
+        markdown_content = ""
         for block in response.content:
             if hasattr(block, 'text'):
-                full_response += block.text
-        
-        # 解析 Markdown 和 HTML（使用方括号标签避免与 HTML 内容冲突）
-        md_match = re.search(r'\[MARKDOWN\](.*?)\[/MARKDOWN\]', full_response, re.DOTALL)
-        html_match = re.search(r'\[WECHAT_HTML\](.*?)\[/WECHAT_HTML\]', full_response, re.DOTALL)
+                markdown_content += block.text
 
-        # 记录解析结果
-        if not md_match:
-            logger.warning("未能解析到 [MARKDOWN] 标签，将使用原始响应")
-        if not html_match:
-            logger.warning("未能解析到 [WECHAT_HTML] 标签，HTML 内容为空")
-            logger.debug(f"原始响应末尾 500 字符: {full_response[-500:]}")
+        markdown_content = markdown_content.strip()
+        logger.info(f"Markdown 生成成功，长度: {len(markdown_content)} 字符")
+
+        # 第二步：基于 Markdown 生成 HTML
+        logger.info("生成微信公众号 HTML...")
+        html_prompt = f"""请将以下 Markdown 技术日报转换为适配微信公众号的富文本 HTML。
+
+## 原始 Markdown 内容：
+{markdown_content}
+
+## HTML 样式规范（必须严格遵守）：
+
+**布局规范：**
+- 卡片容器：padding: 15px; margin-bottom: 15px;
+- 标题和内容之间：margin-bottom: 10px;
+- 表格：margin-top: 10px; width: 100%;
+- 禁止使用 min-height 或固定 height
+- **列表标签必须紧凑排列！** 正确格式：`<ul><li>内容1</li><li>内容2</li></ul>`
+
+**颜色规范（极其重要！）：**
+- **所有颜色必须使用十六进制格式**：白色 #ffffff，黑色 #000000
+- 禁止使用 white、black、red 等颜色名称！
+
+**样式规范：**
+- 使用内联样式
+- 卡片背景：linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)
+- 卡片圆角：border-radius: 12px;
+- **表格表头**：background: #667eea; color: #ffffff;
+- 表格数据行：交替背景色 #ffffff 和 #f8f9fa
+- 字体大小：标题 16-18px，正文 14-15px，表格 13px
+- 行间距：line-height: 1.8;
+
+**特殊区块样式：**
+
+阅读时间提示（放在最开头）：
+<div style="text-align: center; color: #888888; font-size: 13px; padding: 10px 0; margin-bottom: 15px; border-bottom: 1px dashed #e0e0e0;">
+  本文共约{len(markdown_content)}字 | 预计阅读时间{len(markdown_content)//300}分钟
+</div>
+
+今日头条区块：
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; margin: 20px 0;">
+  <h2 style="color: #ffffff; font-size: 18px; margin: 0 0 15px 0;">📌 今日头条：XXX</h2>
+  <p style="color: #ffffff; font-size: 14px; margin-bottom: 10px;">内容...</p>
+</div>
+
+互动引导：
+<div style="background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%); padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0;">
+  <p style="color: #ffffff; font-size: 16px; font-weight: bold; margin: 0;">👇 觉得有用？点个赞支持一下</p>
+</div>
+
+**📱 移动端布局（极其重要）：**
+- GitHub Trending / Product Hunt 必须使用卡片式布局
+- HN 热榜可以使用简化表格（最多3列）
+
+GitHub Trending 卡片示例：
+<div style="background: linear-gradient(135deg, #f5f7fa 0%, #e3e8f0 100%); padding: 15px; border-radius: 12px; margin-bottom: 12px; border-left: 4px solid #667eea;">
+  <div style="margin-bottom: 8px;">
+    <strong style="color: #333333; font-size: 15px;">项目名</strong>
+    <span style="background: #667eea; color: #ffffff; padding: 3px 8px; border-radius: 10px; font-size: 12px; margin-left: 8px;">⭐ 15K+</span>
+  </div>
+  <div style="color: #888888; font-size: 12px; margin-bottom: 8px;">🐍 Python</div>
+  <p style="margin: 0; color: #555555; font-size: 14px; line-height: 1.6;">项目描述</p>
+</div>
+
+**输出要求：**
+直接输出完整的 HTML 代码，以 <div> 开始，不要包含 <!DOCTYPE>、<html>、<head>、<body> 等标签。
+不要添加任何说明文字，只输出 HTML 代码。
+"""
+
+        html_response = self.client.messages.create(
+            model=self.model,
+            max_tokens=16384,
+            messages=[{
+                "role": "user",
+                "content": html_prompt
+            }]
+        )
+
+        # 提取 HTML 文本
+        html_content = ""
+        for block in html_response.content:
+            if hasattr(block, 'text'):
+                html_content += block.text
+
+        html_content = html_content.strip()
+
+        # 清理 HTML 代码块标记（如果有的话）
+        if html_content.startswith("```html"):
+            html_content = html_content[7:]
+        if html_content.startswith("```"):
+            html_content = html_content[3:]
+        if html_content.endswith("```"):
+            html_content = html_content[:-3]
+        html_content = html_content.strip()
 
         # 清理和修复 HTML 以适配微信公众号
-        html_content = html_match.group(1).strip() if html_match else ""
         if html_content:
             html_content = self._clean_html_for_wechat(html_content)
+            logger.info(f"HTML 生成成功，长度: {len(html_content)} 字符")
+        else:
+            logger.warning("HTML 内容为空")
 
         return {
-            "markdown": md_match.group(1).strip() if md_match else full_response,
+            "markdown": markdown_content,
             "html": html_content,
-            "raw": full_response
+            "raw": markdown_content
         }
 
     def _clean_html_for_wechat(self, html: str) -> str:
@@ -582,17 +536,22 @@ class TechDigestAgent:
         # 生成日报，带重试逻辑确保 HTML 输出
         digest = {}
         for attempt in range(1, max_retries + 1):
-            digest = self.generate_digest(hn_data, ph_data, twitter_data, reddit_data, github_data)
-            if digest.get("html"):
-                logger.info(f"日报生成成功 (第 {attempt} 次尝试)")
-                break
-            if attempt < max_retries:
-                logger.warning(f"第 {attempt} 次生成未包含 HTML，重试中...")
-            else:
-                logger.warning(f"第 {attempt} 次生成未包含 HTML，已达最大重试次数")
+            try:
+                digest = self.generate_digest(hn_data, ph_data, twitter_data, reddit_data, github_data)
+                # 检查 HTML 是否有效（不为空且长度合理）
+                if digest.get("html") and len(digest["html"]) > 500:
+                    logger.info(f"日报生成成功 (第 {attempt} 次尝试)")
+                    break
+                else:
+                    html_len = len(digest.get("html", ""))
+                    logger.warning(f"第 {attempt} 次生成 HTML 不合格（长度: {html_len}），重试中...")
+            except Exception as e:
+                logger.error(f"第 {attempt} 次生成出错: {str(e)}")
+                if attempt >= max_retries:
+                    raise
 
-        if not digest.get("html"):
-            logger.error("所有尝试均未生成 HTML 内容，无法发布到公众号")
+        if not digest.get("html") or len(digest["html"]) < 500:
+            logger.error("所有尝试均未生成有效 HTML 内容，无法发布到公众号")
         
         # 保存文件
         output_dir = Path("output")
