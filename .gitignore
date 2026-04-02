@@ -27,3 +27,6 @@ output/
 # Coverage
 .coverage
 htmlcov/
+
+# Playwright MCP logs
+.playwright-mcp/

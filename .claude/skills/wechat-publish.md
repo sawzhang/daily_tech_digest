@@ -27,10 +27,12 @@ article-folder/
 ## 文章制作完整流程
 
 1. **撰写 HTML 文章**：按微信排版规范编写，图片用本地文件名引用（如 `img-arch.jpg`）
-2. **准备封面图片**：cover.png/jpg，建议 900x383 比例
-3. **生成正文插图**：使用 `/napkin-images` 通过 Napkin.ai 生成专业可视化图表（详见 napkin-images.md）
-4. **所有文件放入同一目录**
-5. **执行 `/wechat-publish <目录路径>` 发布**
+2. **对照风格规范**：参考 `article-style.md`，确认配色、CSS 合规、SVG 图表、封面尺寸符合规范
+3. **准备封面图片**：HTML 模板 → Chrome headless 截图，900×500px，文件名 `img-01-cover.png`
+4. **生成正文插图**：使用 `/napkin-images` 通过 Napkin.ai 生成专业可视化图表（详见 napkin-images.md）
+5. **发布前质量审查**：执行 `/article-review`，四轮对抗测试找出逻辑漏洞，修订后再发布（详见 article-review.md）
+6. **所有文件放入同一目录**
+7. **执行 `/wechat-publish <目录路径>` 发布**
 
 ## 执行指令
 
@@ -66,10 +68,13 @@ WECHAT_APP_SECRET=xxxxxxxxxx
 
 ## 排版规范
 
-- 颜色: 必须十六进制 `#ffffff`，禁用 `white`
-- 图片: 宽度 100%，圆角 8px，居中
-- 字体: 正文 15px，行高 2.0，字间距 1px
-- 列表: 标签紧凑，无空白字符
+详见 `article-style.md`（CSS 合规、配色方案、SVG 规范、封面制作、图表规范）。
+
+核心要点：
+- 颜色：必须十六进制 `#ffffff`，禁用 `white`、`rgb()` 等
+- 无 `<style>` 块，100% 内联 `style="..."`
+- 字体：正文 15px，行高 2.0，字体栈含 `PingFang SC`
+- 正文容器 `max-width:677px`
 
 ## 常见问题
 

@@ -23,6 +23,7 @@ import logging
 import requests
 from pathlib import Path
 from dotenv import load_dotenv
+from premailer import transform
 
 load_dotenv()
 
@@ -241,12 +242,15 @@ def publish_article(article_dir: str) -> dict:
     if not article_path.is_dir():
         raise Exception(f"目录不存在: {article_dir}")
 
-    # 1. 查找 HTML 文件
-    html_files = list(article_path.glob("*.html"))
-    if not html_files:
-        raise Exception(f"未找到 HTML 文件: {article_dir}")
-
-    html_file = html_files[0]
+    # 1. 查找 HTML 文件（优先选 article.html）
+    article_html = article_path / "article.html"
+    if article_html.exists():
+        html_file = article_html
+    else:
+        html_files = list(article_path.glob("*.html"))
+        if not html_files:
+            raise Exception(f"未找到 HTML 文件: {article_dir}")
+        html_file = html_files[0]
     html_content = html_file.read_text(encoding='utf-8')
     logger.info(f"读取文章: {html_file.name}")
 
@@ -265,8 +269,12 @@ def publish_article(article_dir: str) -> dict:
     # 4. 初始化发布器
     publisher = WeChatPublisher()
 
-    # 5. 上传正文图片并替换路径
-    body_content = extract_body(html_content)
+    # 5. CSS inline 化（将 <style> 中的样式转为 inline style）
+    html_inlined = transform(html_content, remove_classes=True, strip_important=False)
+    logger.info("CSS inline 化完成")
+
+    # 6. 上传正文图片并替换路径
+    body_content = extract_body(html_inlined)
     image_url_map = {}
 
     for img_path in images["content"]:
@@ -279,14 +287,14 @@ def publish_article(article_dir: str) -> dict:
         except Exception as e:
             logger.warning(f"上传图片失败 {img_path.name}: {e}")
 
-    # 6. 上传封面图片
+    # 7. 上传封面图片
     thumb_media_id = publisher.upload_cover_image(str(images["cover"]))
 
-    # 7. 优化 HTML
+    # 8. 优化 HTML
     body_content = optimize_html_for_wechat(body_content)
     logger.info(f"HTML 内容长度: {len(body_content)} 字符")
 
-    # 8. 创建草稿
+    # 9. 创建草稿
     draft_media_id = publisher.create_draft(
         title=title,
         content=body_content,
@@ -294,7 +302,7 @@ def publish_article(article_dir: str) -> dict:
         digest=title[:100]
     )
 
-    # 9. 尝试发布
+    # 10. 尝试发布
     publish_id = publisher.publish(draft_media_id)
 
     return {
